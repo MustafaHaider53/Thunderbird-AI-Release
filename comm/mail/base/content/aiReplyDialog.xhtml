@@ -1,0 +1,575 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet href="chrome://global/skin/global.css" type="text/css"?>
+<?xml-stylesheet href="chrome://messenger/skin/messenger.css" type="text/css"?>
+
+<html:html xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+           xmlns:html="http://www.w3.org/1999/xhtml">
+<html:head>
+  <html:title>AI Smart Reply</html:title>
+  <html:style>
+    :root {
+      /* Premium HSL Color Palette */
+      --ai-hue: 255;
+      --ai-primary: hsla(var(--ai-hue), 100%, 65%, 1);
+      --ai-secondary: hsla(185, 100%, 45%, 1);
+      --ai-gradient: linear-gradient(135deg, var(--ai-primary), var(--ai-secondary));
+      --ai-glow: hsla(var(--ai-hue), 100%, 75%, 0.4);
+      
+      --card-bg: var(--layout-background-2, #ffffff);
+      --card-border: hsla(var(--ai-hue), 30%, 80%, 0.3);
+      --input-bg: var(--layout-background-1, #f5f7fa);
+      --text-main: var(--layout-color-1, #1e293b);
+      --text-muted: hsla(var(--ai-hue), 10%, 40%, 0.7);
+      
+      --glass-bg: hsla(0, 0%, 100%, 0.1);
+      --glass-blur: blur(8px);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --card-bg: #1e1e1e;
+        --card-border: hsla(var(--ai-hue), 20%, 30%, 0.4);
+        --input-bg: #141414;
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+      }
+    }
+
+    body {
+      font-family: "Inter", "Segoe UI", "Roboto", -apple-system, sans-serif;
+      margin: 0;
+      padding: 0; /* Changed from 24px */
+      background: var(--layout-background-0);
+      color: var(--text-main);
+      min-width: 650px;
+      height: 100vh;
+      box-sizing: border-box;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ai-container {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      height: 100%;
+      animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      padding: 24px;
+      box-sizing: border-box;
+      gap: 0; /* Use individual margins for better control */
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Fixed Header and Footer, Scrollable Content */
+    .ai-content {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 0 4px 10px 0; /* Add space for scrollbar */
+      scrollbar-width: thin;
+      scrollbar-color: var(--card-border) transparent;
+    }
+
+    /* Header Design */
+    .ai-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 20px;
+      flex-shrink: 0;
+    }
+
+    .ai-logo {
+      width: 36px;
+      height: 36px;
+      background: var(--ai-gradient);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      box-shadow: 0 4px 15px var(--ai-glow);
+      transition: transform 0.3s ease;
+    }
+    
+    .ai-logo:hover { transform: rotate(10deg) scale(1.1); }
+
+    .ai-title-group { display: flex; flex-direction: column; }
+    
+    .ai-title {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 800;
+      background: white;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -1px;
+    }
+    
+    .ai-subtitle { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+
+    /* Content Cards */
+    .ai-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      border: 1px solid var(--card-border);
+      padding: 18px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .ai-card::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 2px;
+      background: var(--ai-gradient);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .ai-card:hover::before { opacity: 0.5; }
+
+    .card-label {
+      font-size: 11px;
+      font-weight: 750;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--ai-primary);
+      margin-bottom: 12px;
+      display: block;
+      opacity: 0.9;
+    }
+
+    /* Summary Section */
+    .summary-box {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-main);
+      opacity: 0.9;
+    }
+
+    /* Personalization Options */
+    .personalization-bar {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+      flex-wrap: nowrap;
+      flex-shrink: 0;
+      align-items: center;
+    }
+
+    .select-wrapper {
+      position: relative;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .select-wrapper::after {
+      content: "▼";
+      font-size: 9px;
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      color: var(--text-muted);
+    }
+
+    .personalization-select {
+      width: 100%;
+      appearance: none;
+      -webkit-appearance: none;
+      background: var(--input-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 7px 22px 7px 8px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color 0.2s ease;
+      font-family: inherit;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .personalization-select:focus,
+    .personalization-select:hover {
+      border-color: var(--ai-primary);
+      outline: none;
+    }
+
+    .context-row {
+      display: flex;
+      align-items: center;
+      margin-top: 6px;
+      flex-shrink: 0;
+      padding: 0 2px;
+    }
+
+    /* Reply Editor Area */
+    .reply-editor {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 250px; /* Increased */
+    }
+
+    #aiReplyText {
+      flex: 1;
+      width: 100%;
+      border: none;
+      background: transparent;
+      font-family: inherit;
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text-main);
+      resize: none;
+      padding: 0;
+      margin-top: 5px;
+    }
+
+    #aiReplyText:focus { outline: none; }
+
+    .sparkle-icon {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      color: var(--ai-primary);
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    /* Prompt Box */
+    .prompt-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 10px;
+      flex-shrink: 0;
+    }
+
+    .prompt-area {
+      display: flex;
+      background: var(--input-bg);
+      border-radius: 12px;
+      padding: 6px 6px 6px 14px;
+      align-items: center;
+      border: 1px solid var(--card-border);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .prompt-area:focus-within {
+      border-color: var(--ai-primary);
+      box-shadow: 0 0 0 3px hsla(var(--ai-hue), 100%, 65%, 0.15);
+      background: var(--card-bg);
+    }
+
+    #aiPromptInput {
+      flex: 1;
+      background: transparent;
+      border: none;
+      padding: 10px 0;
+      font-size: 14px;
+      color: var(--text-main);
+    }
+
+    #aiPromptInput:focus { outline: none; }
+
+    /* Buttons */
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-icon { stroke: currentColor; }
+
+    #aiRegenerateBtn {
+      background: var(--ai-gradient);
+      color: white;
+      padding: 10px 16px;
+      box-shadow: 0 4px 10px var(--ai-glow);
+    }
+
+    #aiRegenerateBtn:hover:not(:disabled) { transform: scale(1.05); }
+
+    .ai-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-top: 20px; /* Increased */
+      flex-shrink: 0;
+      padding-top: 10px;
+      border-top: 1px solid var(--card-border);
+    }
+
+    .footer-left { display: flex; gap: 8px; }
+    .footer-right { display: flex; gap: 12px; }
+
+    #aiCancelBtn {
+      background: var(--input-bg);
+      color: var(--text-main);
+      border: 1px solid var(--card-border);
+    }
+
+    #aiCancelBtn:hover { background: hsla(0, 0%, 50%, 0.1); }
+
+    #aiUseReplyBtn, .primary-button {
+      background: var(--ai-gradient);
+      color: white;
+      box-shadow: 0 4px 15px var(--ai-glow);
+      min-width: 150px;
+    }
+
+    #aiUseReplyBtn:hover, .primary-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px var(--ai-glow);
+    }
+
+    #aiUseReplyBtn:disabled, .primary-button:disabled { filter: grayscale(0.8); opacity: 0.5; }
+
+    /* Error and Logs */
+    .error-card {
+      background: hsla(0, 100%, 95%, 1);
+      border-color: hsla(0, 100%, 80%, 1);
+      color: hsla(0, 100%, 30%, 1);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .error-card { background: hsla(0, 50%, 15%, 1); color: hsla(0, 100%, 80%, 1); }
+    }
+
+    .error-header { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+    
+    .log-panel {
+      margin-top: 10px;
+      background: rgba(0,0,0,0.05);
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    #aiErrorLogText {
+      width: 100%;
+      height: 120px;
+      font-family: "Cascadia Code", "Consolas", monospace;
+      font-size: 12px;
+      background: rgba(0,0,0,0.1);
+      color: inherit;
+      border: none;
+      padding: 8px;
+      border-radius: 4px;
+      resize: vertical;
+    }
+
+    .btn-small { padding: 6px 12px; font-size: 12px; border-radius: 6px; }
+
+    /* Loading state */
+    #aiReplyLoading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      gap: 20px;
+    }
+
+    .loader-orb {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: var(--ai-gradient);
+      animation: float 2s infinite ease-in-out;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      box-shadow: 0 0 30px var(--ai-glow);
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) scale(1); box-shadow: 0 0 20px var(--ai-glow); }
+      50% { transform: translateY(-10px) scale(1.1); box-shadow: 0 10px 40px var(--ai-glow); }
+    }
+
+    .hidden { display: none !important; }
+  </html:style>
+</html:head>
+<html:body>
+  <html:div class="ai-container">
+    <!-- Header -->
+    <html:div class="ai-header">
+      <html:div class="ai-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+      </html:div>
+      <html:div class="ai-title-group">
+        <html:h2 class="ai-title">Email Genie</html:h2>
+        <html:span class="ai-subtitle">Powered by Large Language Models</html:span>
+      </html:div>
+    </html:div>
+
+    <!-- Loading State -->
+    <html:div id="aiReplyLoading" class="hidden">
+      <html:div class="loader-orb">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+      </html:div>
+      <html:span id="aiReplyLoadingText" style="font-weight: 700; font-size: 16px; letter-spacing: -0.5px;">Synthesizing response...</html:span>
+      <html:div id="aiReplyProgressContainer" class="hidden" style="width: 80%; max-width: 320px; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <html:div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
+          <html:div id="aiReplyProgressBar" style="width: 0%; height: 100%; background: var(--ai-gradient); transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 10px var(--ai-glow);"></html:div>
+        </html:div>
+        <html:span id="aiReplyProgressPercent" style="font-size: 12px; font-weight: 600; opacity: 0.8; font-family: monospace;"></html:span>
+      </html:div>
+    </html:div>
+
+    <!-- Scrollable Content Area -->
+    <html:div class="ai-content">
+      <!-- Error Card -->
+      <html:div id="aiReplyError" class="ai-card error-card hidden">
+        <html:div class="error-header">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Something went wrong
+        </html:div>
+        <html:div id="aiErrorMessage" style="font-size: 14px;"></html:div>
+        <html:div class="log-actions">
+          <html:button id="aiShowLogsBtn" class="btn-small">Show Error Details</html:button>
+        </html:div>
+        <html:div id="aiLogPanel" class="log-panel hidden">
+          <html:textarea id="aiErrorLogText" readonly="true"></html:textarea>
+          <html:button id="aiCopyLogsBtn" class="btn-small">Copy Full Log</html:button>
+        </html:div>
+      </html:div>
+
+      <!-- Summary Card -->
+      <html:div id="aiReplySummary" class="ai-card hidden">
+        <html:span class="card-label">Thread Context</html:span>
+        <html:div id="aiSummaryText" class="summary-box"></html:div>
+      </html:div>
+
+      <!-- Main Reply Card -->
+      <html:div id="aiReplyBody" class="ai-card reply-editor hidden">
+        <html:span class="card-label">Generated Draft</html:span>
+        <html:textarea id="aiReplyText" spellcheck="true"
+                       placeholder="AI generated content will appear here..."></html:textarea>
+        <html:div class="sparkle-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path><path d="M19 3v4"></path><path d="M21 5h-4"></path></svg>
+        </html:div>
+      </html:div>
+    </html:div>
+
+    <!-- Interaction Area -->
+    <html:div class="personalization-bar">
+      <html:select id="aiEngineSelect" class="personalization-select">
+        <html:option value="auto">Auto Fallback</html:option>
+        <html:option value="groq">Groq Cloud</html:option>
+        <html:option value="local">Local AI (Offline)</html:option>
+      </html:select>
+      <html:select id="aiToneSelect" class="personalization-select">
+        <html:option value="auto">Auto Tone</html:option>
+        <html:option value="professional">Professional</html:option>
+        <html:option value="friendly">Friendly</html:option>
+        <html:option value="strict">Strict</html:option>
+        <html:option value="empathic">Empathic</html:option>
+        <html:option value="humorous">Humorous</html:option>
+      </html:select>
+      <html:select id="aiLengthSelect" class="personalization-select">
+        <html:option value="auto">Auto Length</html:option>
+        <html:option value="short">Short</html:option>
+        <html:option value="medium">Medium</html:option>
+        <html:option value="long">Long</html:option>
+      </html:select>
+      <html:select id="aiLanguageSelect" class="personalization-select">
+        <html:option value="auto">Auto Language</html:option>
+        <html:option value="english">English</html:option>
+        <html:option value="spanish">Spanish</html:option>
+        <html:option value="french">French</html:option>
+        <html:option value="german">German</html:option>
+        <html:option value="italian">Italian</html:option>
+      </html:select>
+      <html:select id="aiSalutationSelect" class="personalization-select">
+        <html:option value="auto">Auto Salutation</html:option>
+        <html:option value="none">No Salutation</html:option>
+        <html:option value="hi">Hi / Hello</html:option>
+        <html:option value="dear">Dear [Name]</html:option>
+        <html:option value="greetings">Greetings</html:option>
+      </html:select>
+      <html:select id="aiSignatureSelect" class="personalization-select">
+        <html:option value="auto">Auto Signature</html:option>
+        <html:option value="none">No Signature</html:option>
+        <html:option value="thanks">Thanks / Regards</html:option>
+        <html:option value="best">Best Regards</html:option>
+        <html:option value="warm">Warm Regards</html:option>
+        <html:option value="sincerely">Yours Sincerely</html:option>
+        <html:option value="faithfully">Yours Faithfully</html:option>
+        <html:option value="truly">Yours Truly</html:option>
+        <html:option value="respectfully">Respectfully</html:option>
+        <html:option value="cordially">Cordially</html:option>
+      </html:select>
+    </html:div>
+    <html:div class="context-row">
+      <html:label id="aiContextLabel" style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; cursor: pointer;">
+        <html:input type="checkbox" id="aiIncludeContextChk" style="margin: 0;" checked="true" />
+        Include thread context in reply
+      </html:label>
+    </html:div>
+
+    <html:div class="prompt-container">
+      <html:div class="prompt-area">
+        <html:input id="aiPromptInput" type="text" tabindex="1"
+                    placeholder="Refine style, tone, or content (e.g. 'Make it shorter')" />
+        <html:button id="aiRegenerateBtn" tabindex="2">
+          <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+          Refine
+        </html:button>
+      </html:div>
+      <html:div class="prompt-options-row" style="display: flex; align-items: center; margin-top: -4px; padding: 0 2px;">
+        <html:label id="aiPersistentPromptLabel" style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; cursor: pointer;">
+          <html:input type="checkbox" id="aiPersistentPromptChk" style="margin: 0;" />
+          Remember instructions for future replies
+        </html:label>
+      </html:div>
+    </html:div>
+
+    <!-- Footer -->
+    <html:div class="ai-footer">
+      <html:div class="footer-left">
+        <html:button id="aiCancelBtn">Cancel</html:button>
+      </html:div>
+      <html:div class="footer-right">
+        <html:button id="aiUseReplyBtn" class="primary" disabled="true">
+          <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+          Send Reply
+        </html:button>
+      </html:div>
+    </html:div>
+  </html:div>
+
+  <html:script src="chrome://messenger/content/aiReplyDialog.js"></html:script>
+</html:body>
+</html:html>
